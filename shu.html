@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            width: 100%;
+            background: #fff;
+        }
+
+        .search-bar {
+            width: calc(100% - 85px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #status {
+            margin: 10px 0;
+            color: green;
+            font-weight: bold;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 6px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-list a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .file-list a:hover {
+            text-decoration: underline;
+        }
+
+        .file-list button {
+            background-color: #dc3545;
+            color: white;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .file-list button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Upload and Management</h1>
+        <input type="file" id="fileInput" multiple>
+        <button onclick="uploadFiles()">Upload</button>
+        <p id="status"></p>
+
+        <input type="text" id="searchInput" class="search-bar" placeholder="Search files...">
+        <button onclick="searchFiles()">Search</button>
+
+        <ul id="fileList" class="file-list"></ul>
+    </div>
+
+    <script>
+        const API_BASE_URL = "http://127.0.0.1:8000";
+
+        async function uploadFiles() {
+            const fileInput = document.getElementById("fileInput");
+            const status = document.getElementById("status");
+            if (fileInput.files.length === 0) {
+                status.textContent = "Please select a file.";
+                return;
+            }
+
+            let formData = new FormData();
+            for (let file of fileInput.files) {
+                formData.append("files", file);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload/`, { method: "POST", body: formData });
+                if (response.ok) {
+                    status.textContent = "Files uploaded successfully!";
+                    fileInput.value = "";
+                    loadFiles();
+                } else {
+                    status.textContent = "Failed to upload files.";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                status.textContent = "Error uploading files.";
+            }
+        }
+
+        async function loadFiles() {
+            const fileList = document.getElementById("fileList");
+            fileList.innerHTML = "";
+            try {
+                const response = await fetch(`${API_BASE_URL}/files/`);
+                const data = await response.json();
+                data.files.forEach((filename) => {
+                    let li = document.createElement("li");
+                    li.innerHTML = `<a href="${API_BASE_URL}/files/${filename}" target="_blank">${filename}</a> 
+                                    <button onclick="deleteFile('${filename}')">Delete</button>`;
+                    fileList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error fetching files:", error);
+            }
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`Are you sure you want to delete "${filename}"?`)) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/files/${filename}`, { method: "DELETE" });
+                if (response.ok) {
+                    alert(`${filename} deleted successfully!`);
+                    loadFiles();
+                } else {
+                    alert("Failed to delete file.");
+                }
+            } catch (error) {
+                console.error("Error deleting file:", error);
+                alert("Error deleting file.");
+            }
+        }
+
+        async function searchFiles() {
+            const searchInput = document.getElementById("searchInput").value;
+            const fileList = document.getElementById("fileList");
+            fileList.innerHTML = "";
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/search/?query=${searchInput}`);
+                const data = await response.json();
+
+                if (data.results.length === 0) {
+                    fileList.innerHTML = "<p>No matching files found.</p>";
+                    return;
+                }
+
+                data.results.forEach((file) => {
+                    let li = document.createElement("li");
+                    li.innerHTML = `<a href="${API_BASE_URL}/files/${file.filename}" target="_blank">${file.filename}</a> 
+                                    <button onclick="deleteFile('${file.filename}')">Delete</button>`;
+                    fileList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error searching files:", error);
+                fileList.innerHTML = "<p>Error fetching search results.</p>";
+            }
+        }
+
+        window.onload = loadFiles;
+    </script>
+</body>
+</html>
