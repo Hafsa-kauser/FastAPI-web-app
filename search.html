@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Files</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        input, select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .search-results {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .search-results li {
+            background-color: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 6px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Search Files</h1>
+        <a href="shu.html"><button>Go to Upload Page</button></a>
+        <br><br>
+        <input type="text" id="query" placeholder="Enter keyword">
+        <input type="date" id="start_date">
+        <input type="date" id="end_date">
+        <input type="text" id="content_type" placeholder="Enter content type">
+        <button onclick="searchFiles()">Search</button>
+        <ul id="searchResults" class="search-results"></ul>
+    </div>
+
+    <script>
+        const API_BASE_URL = "http://localhost:8000";
+
+        async function searchFiles() {
+            const query = document.getElementById("query").value.trim();
+            const start_date = document.getElementById("start_date").value;
+            const end_date = document.getElementById("end_date").value;
+            const content_type = document.getElementById("content_type").value.trim();
+
+            let url = `${API_BASE_URL}/search/?`;
+            if (query) url += `query=${encodeURIComponent(query)}&`;
+            if (start_date) url += `start_date=${encodeURIComponent(start_date)}&`;
+            if (end_date) url += `end_date=${encodeURIComponent(end_date)}&`;
+            if (content_type) url += `content_type=${encodeURIComponent(content_type)}`;
+
+            console.log("Search URL:", url); // Debugging output
+
+            const searchResults = document.getElementById("searchResults");
+            searchResults.innerHTML = "";  // Clear previous results
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                console.log("Search Response:", data);  // Debugging output
+
+                if (data.results.length === 0) {
+                    searchResults.innerHTML = "<li>No files found.</li>";
+                    return;
+                }
+
+                data.results.forEach(file => {
+                    let li = document.createElement("li");
+                    li.innerHTML = `<a href="${API_BASE_URL}/files/${file.filename}" target="_blank">${file.filename}</a>`;
+                    searchResults.appendChild(li);
+                });
+
+            } catch (error) {
+                console.error("Error fetching search results:", error);
+            }
+        }
+    </script>
+</body>
+</html>
